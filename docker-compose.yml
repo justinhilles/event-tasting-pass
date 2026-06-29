@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: event-tasting-pass-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: eventpass
+      POSTGRES_PASSWORD: eventpass
+      POSTGRES_DB: eventpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventpass -d eventpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: event-tasting-pass-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://eventpass:eventpass@db:5432/eventpass?schema=public"
+      APP_URL: "http://localhost:3000"
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - app_node_modules:/app/node_modules
+      - app_next:/app/.next
+    command: sh -c "npm install && npx prisma migrate dev --name init && npm run dev"
+
+volumes:
+  postgres_data:
+  app_node_modules:
+  app_next:
+

@@ -1,0 +1,385 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationRole {
+  SUPER_ADMIN
+  ORG_ADMIN
+  EVENT_MANAGER
+  SUPPORT_VOLUNTEER
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  SALES_PAUSED
+  POSTPONED
+  CANCELLED
+  COMPLETED
+}
+
+enum BundleVisibility {
+  PUBLIC
+  PRIVATE_LINK
+  ADMIN_ONLY
+}
+
+enum PaymentMethod {
+  ONLINE
+  CASH
+  VENMO
+  CHECK
+  COMP
+  OTHER_MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  COMPED
+}
+
+enum VendorStatus {
+  AVAILABLE
+  LOW_SUPPLY
+  PAUSED
+  SOLD_OUT
+}
+
+enum LedgerEntryType {
+  PURCHASE
+  TOP_UP
+  BONUS
+  COMP
+  MANUAL_ADJUSTMENT
+  REDEMPTION
+  VOID
+}
+
+enum RedemptionStatus {
+  ACTIVE
+  VOIDED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrganizationMembership[]
+  auditLogs   AuditLog[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events      Event[]
+  memberships OrganizationMembership[]
+}
+
+model OrganizationMembership {
+  id             String           @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+model Event {
+  id                    String      @id @default(cuid())
+  organizationId        String
+  name                  String
+  slug                  String
+  description           String?
+  status                EventStatus @default(DRAFT)
+  timezone              String      @default("America/Los_Angeles")
+  startsAt              DateTime?
+  endsAt                DateTime?
+  salesStartAt          DateTime?
+  salesEndAt            DateTime?
+  redemptionStartAt     DateTime?
+  redemptionEndAt       DateTime?
+  locationName          String?
+  locationAddress       String?
+  heroImageUrl          String?
+  primaryColor          String?
+  publicNoticeTitle     String?
+  publicNoticeBody      String?
+  publicNoticeActive    Boolean     @default(false)
+  platformFeePercent    Decimal     @default(0)
+  processingFeeOptional Boolean     @default(false)
+  donationsEnabled      Boolean     @default(true)
+  receiptFooterText     String?
+  policyText            String?
+  vendorVoidWindowMins  Int         @default(5)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  creditTypes CreditType[]
+  bundles     CreditBundle[]
+  vendors     Vendor[]
+  categories  VendorCategory[]
+  sponsors    Sponsor[]
+  orders      Order[]
+  wallets     Wallet[]
+  redemptions Redemption[]
+  ledger      CreditLedgerEntry[]
+  auditLogs   AuditLog[]
+
+  @@unique([organizationId, slug])
+}
+
+model CreditType {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  slug      String
+  cap       Int
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event         Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bundleCredits CreditBundleCredit[]
+  vendorCredits VendorCreditType[]
+  ledger        CreditLedgerEntry[]
+
+  @@unique([eventId, slug])
+}
+
+model CreditBundle {
+  id                    String           @id @default(cuid())
+  eventId               String
+  name                  String
+  slug                  String
+  description           String?
+  priceCents            Int
+  currency              String           @default("usd")
+  visibility            BundleVisibility @default(PUBLIC)
+  active                Boolean          @default(true)
+  availableForNewWallet Boolean          @default(true)
+  availableForTopUp     Boolean          @default(true)
+  salesStartAt          DateTime?
+  salesEndAt            DateTime?
+  quantityLimit         Int?
+  maxPerOrder           Int?
+  privateToken          String?          @unique
+  sortOrder             Int              @default(0)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  event   Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  credits CreditBundleCredit[]
+  items   OrderItem[]
+
+  @@unique([eventId, slug])
+}
+
+model CreditBundleCredit {
+  id           String @id @default(cuid())
+  bundleId     String
+  creditTypeId String
+  quantity     Int
+
+  bundle     CreditBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  creditType CreditType   @relation(fields: [creditTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, creditTypeId])
+}
+
+model VendorCategory {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  slug      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  vendors Vendor[]
+
+  @@unique([eventId, slug])
+}
+
+model Vendor {
+  id                       String       @id @default(cuid())
+  eventId                  String
+  categoryId               String?
+  name                     String
+  slug                     String
+  description              String?
+  logoUrl                  String?
+  boothLocation            String?
+  websiteUrl               String?
+  estimatedCapacity        Int?
+  status                   VendorStatus @default(AVAILABLE)
+  ageRestricted            Boolean      @default(false)
+  maxRedemptionsPerWallet  Int          @default(1)
+  scannerToken             String       @unique @default(cuid())
+  scannerPin               String?
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category    VendorCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  creditTypes VendorCreditType[]
+  redemptions Redemption[]
+
+  @@unique([eventId, slug])
+}
+
+model VendorCreditType {
+  id           String @id @default(cuid())
+  vendorId     String
+  creditTypeId String
+
+  vendor     Vendor     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  creditType CreditType @relation(fields: [creditTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, creditTypeId])
+}
+
+model Sponsor {
+  id          String   @id @default(cuid())
+  eventId     String
+  name        String
+  tier        String?
+  logoUrl     String?
+  websiteUrl  String?
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id                    String        @id @default(cuid())
+  eventId               String
+  buyerEmail            String
+  buyerName             String?
+  paymentMethod         PaymentMethod
+  paymentStatus         PaymentStatus @default(PENDING)
+  subtotalCents         Int
+  discountCents         Int           @default(0)
+  donationCents         Int           @default(0)
+  platformFeeCents      Int           @default(0)
+  processingRecoveryCents Int         @default(0)
+  totalCents            Int
+  currency              String        @default("usd")
+  acceptedTermsAt       DateTime?
+  adminNote             String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  event   Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  items   OrderItem[]
+  wallets Wallet[]
+}
+
+model OrderItem {
+  id             String @id @default(cuid())
+  orderId        String
+  bundleId       String
+  walletId       String?
+  quantity       Int
+  unitPriceCents Int
+
+  order  Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  bundle CreditBundle @relation(fields: [bundleId], references: [id], onDelete: Restrict)
+  wallet Wallet?      @relation(fields: [walletId], references: [id], onDelete: SetNull)
+}
+
+model Wallet {
+  id              String    @id @default(cuid())
+  eventId         String
+  orderId         String?
+  displayName     String
+  accessToken     String    @unique @default(cuid())
+  manualCode      String
+  recipientEmail  String?
+  deactivatedAt   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  event       Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  order       Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  items       OrderItem[]
+  ledger      CreditLedgerEntry[]
+  redemptions Redemption[]
+
+  @@unique([eventId, manualCode])
+}
+
+model CreditLedgerEntry {
+  id              String          @id @default(cuid())
+  eventId         String
+  walletId        String
+  creditTypeId    String
+  type            LedgerEntryType
+  amount          Int
+  reason          String?
+  sourceId        String?
+  createdAt       DateTime        @default(now())
+
+  event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  wallet     Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  creditType CreditType @relation(fields: [creditTypeId], references: [id], onDelete: Restrict)
+}
+
+model Redemption {
+  id              String           @id @default(cuid())
+  eventId         String
+  walletId        String
+  vendorId        String
+  creditTypeId    String
+  status          RedemptionStatus @default(ACTIVE)
+  ageRestricted   Boolean          @default(false)
+  idChecked       Boolean          @default(false)
+  voidedAt        DateTime?
+  voidReason      String?
+  createdAt       DateTime         @default(now())
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  eventId   String?
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  actor User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
