@@ -10,7 +10,7 @@ The first event use case is a charity chili cook-off with a beer garden. Voting 
 
 - One organization can run many events.
 - Multiple organizations can use the same platform.
-- Each organization connects its own payment account.
+- Each organization connects its own Stripe account through Stripe Connect.
 - Each event defines its own credit types, bundles, vendors, caps, rules, branding, and policies.
 - Guests purchase bundles, not arbitrary individual credits.
 - A buyer can purchase multiple wallets in one order.
@@ -76,7 +76,7 @@ The first event use case is a charity chili cook-off with a beer garden. Voting 
 - Super Admin manually creates organizations and invites Organization Admins in MVP.
 - Self-service organization signup is future scope.
 - Each organization can have its own branding and payment settings.
-- Each organization connects its own payment account, expected to be Stripe Connect or equivalent.
+- Each organization connects its own Stripe account through Stripe Connect.
 - Online sales are disabled until the organization's payment account is fully connected and charges are enabled.
 - Manual payments may still be recorded if enabled.
 
@@ -315,7 +315,7 @@ Checkout supports:
 
 MVP payment methods:
 
-- Online checkout.
+- Online checkout through Stripe Checkout.
 - Manual Venmo.
 - Manual cash.
 - Manual check/other.
@@ -323,8 +323,9 @@ MVP payment methods:
 
 Online payments:
 
-- Each organization uses its own connected payment account.
-- Online checkout is disabled until payment account is ready.
+- Each organization uses its own connected Stripe account through Stripe Connect.
+- Online checkout is disabled until the Stripe account is ready.
+- Stripe Checkout is the MVP buyer checkout flow.
 
 Manual payments:
 

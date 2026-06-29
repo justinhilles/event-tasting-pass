@@ -22,6 +22,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# tests
+test-results/
+playwright-report/
+
 # misc
 .DS_Store
 Thumbs.db

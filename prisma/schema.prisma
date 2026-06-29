@@ -85,6 +85,10 @@ model Organization {
   name      String
   slug      String   @unique
   logoUrl   String?
+  stripeAccountId        String?
+  stripeChargesEnabled   Boolean  @default(false)
+  stripePayoutsEnabled   Boolean  @default(false)
+  stripeDetailsSubmitted Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -291,6 +295,9 @@ model Order {
   processingRecoveryCents Int         @default(0)
   totalCents            Int
   currency              String        @default("usd")
+  stripeCheckoutSessionId String?     @unique
+  stripePaymentIntentId   String?
+  stripeAccountId         String?
   acceptedTermsAt       DateTime?
   adminNote             String?
   createdAt             DateTime      @default(now())
@@ -382,4 +389,3 @@ model AuditLog {
   event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
   actor User?  @relation(fields: [actorId], references: [id], onDelete: SetNull)
 }
-

@@ -11,7 +11,10 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 - [x] Add Docker-first local development setup.
 - [x] Add demo seed data.
 - [x] Add starter home, admin, wallet, vendor, and test event pages.
-- [ ] Commit and push scaffold.
+- [x] Commit and push scaffold.
+- [x] Add Vitest unit/integration test setup.
+- [x] Add Playwright E2E test setup.
+- [x] Add MVP checkout-to-redemption E2E coverage.
 - [ ] Add CI checks for typecheck, lint, Prisma validation, and build.
 - [ ] Add `.env.example` coverage for all required runtime variables.
 - [ ] Decide deployment environments: local, staging, production.
@@ -183,28 +186,28 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 ## 9. Checkout And Orders
 
 - [x] Add local test wallet creation flow.
-- [ ] Build real checkout cart for new wallets.
-- [ ] Allow buyer to create multiple wallets in one order.
-- [ ] Require wallet display names or generate defaults.
-- [ ] Allow optional recipient email per wallet.
-- [ ] Select bundles per wallet.
+- [x] Build real checkout cart for new wallets.
+- [x] Allow buyer to create multiple wallets in one order.
+- [x] Require wallet display names or generate defaults.
+- [x] Allow optional recipient email per wallet.
+- [x] Select bundles per wallet.
 - [ ] Support extra donation preset buttons.
-- [ ] Support custom donation amount.
-- [ ] Add terms/policy acceptance checkbox.
+- [x] Support custom donation amount.
+- [x] Add terms/policy acceptance checkbox.
 - [ ] Store accepted terms/policy versions.
-- [ ] Calculate subtotal.
+- [x] Calculate subtotal.
 - [ ] Apply promo code discounts to bundles only.
 - [ ] Exclude donations from promo discounts.
-- [ ] Calculate buyer-paid platform fee after discounts.
-- [ ] Apply platform fee to donations.
+- [x] Calculate buyer-paid platform fee after discounts.
+- [x] Apply platform fee to donations.
 - [ ] Add optional processing fee recovery checkbox.
 - [ ] Create pending order.
 - [ ] Handle successful payment.
 - [ ] Create wallets after successful payment.
-- [ ] Create order items.
-- [ ] Create credit ledger entries.
+- [x] Create order items.
+- [x] Create credit ledger entries.
 - [ ] Handle failed/cancelled checkout.
-- [ ] Build confirmation page.
+- [x] Build confirmation page.
 - [ ] Send buyer receipt/wallet email.
 - [ ] Send optional recipient wallet emails.
 - [ ] Ensure online checkout is disabled without connected payment account.
@@ -212,10 +215,10 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 
 ## 10. Payment Integrations
 
-- [ ] Decide initial provider implementation: Stripe Checkout + Stripe Connect.
-- [ ] Add Stripe SDK.
+- [x] Decide initial provider implementation: Stripe Checkout + Stripe Connect.
+- [x] Add Stripe SDK.
 - [ ] Add Stripe Connect onboarding for organizations.
-- [ ] Store connected account IDs/status.
+- [x] Store connected account IDs/status.
 - [ ] Create checkout sessions for event purchases.
 - [ ] Add Stripe webhook endpoint.
 - [ ] Verify webhook signatures.
@@ -248,16 +251,16 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 
 - [x] Add initial wallet page.
 - [ ] Generate QR code from full wallet URL.
-- [ ] Show manual backup code.
-- [ ] Show credits remaining by credit type.
+- [x] Show manual backup code.
+- [x] Show credits remaining by credit type.
 - [ ] Show simple single-credit label when only one credit type exists.
 - [ ] Add show/hide QR behavior.
 - [ ] Add sticky Show Pass button.
-- [ ] Show event timing/expiration message.
-- [ ] Show vendor live availability count.
+- [x] Show event timing/expiration message.
+- [x] Show vendor live availability count.
 - [ ] Show vendors grouped by category/type.
 - [ ] Show vendor statuses.
-- [ ] Show tasted/not tasted lists.
+- [x] Show tasted/not tasted lists.
 - [ ] Hide redemption timestamps from guests.
 - [ ] Add Buy More Credits button when eligible.
 - [ ] Build top-up checkout from wallet page.
@@ -287,26 +290,26 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 
 - [x] Add initial vendor magic-link page.
 - [ ] Add camera QR scanner.
-- [ ] Parse full wallet URL from QR.
-- [ ] Add manual wallet code entry.
-- [ ] Validate wallet belongs to event.
-- [ ] Validate wallet is active.
-- [ ] Validate redemption window.
-- [ ] Validate accepted credit type balance.
-- [ ] Validate vendor-specific max redemptions per wallet.
-- [ ] Show wallet display name only.
+- [x] Parse full wallet URL from QR.
+- [x] Add manual wallet code entry.
+- [x] Validate wallet belongs to event.
+- [x] Validate wallet is active.
+- [x] Validate redemption window.
+- [x] Validate accepted credit type balance.
+- [x] Validate vendor-specific max redemptions per wallet.
+- [x] Show wallet display name only.
 - [ ] Show relevant credit balances only.
 - [ ] Show already-redeemed warning.
 - [ ] Show vendor status soft warning.
-- [ ] Show age-restricted warning.
-- [ ] Require ID Checked action for age-restricted vendors.
-- [ ] Redeem one credit.
-- [ ] Choose credit type when vendor accepts more than one.
-- [ ] Create redemption record.
-- [ ] Create negative credit ledger entry.
-- [ ] Show success state.
-- [ ] Show recent own redemptions.
-- [ ] Add own-redemption count.
+- [x] Show age-restricted warning.
+- [x] Require ID Checked action for age-restricted vendors.
+- [x] Redeem one credit.
+- [x] Choose credit type when vendor accepts more than one.
+- [x] Create redemption record.
+- [x] Create negative credit ledger entry.
+- [x] Show success state.
+- [x] Show recent own redemptions.
+- [x] Add own-redemption count.
 - [ ] Add vendor void recent redemption action.
 - [ ] Enforce vendor void time window.
 - [ ] Log vendor voids.
@@ -314,11 +317,11 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 
 ## 15. Vendor Status And Reporting
 
-- [ ] Allow vendor to update own status.
+- [x] Allow vendor to update own status.
 - [ ] Allow admins to update any vendor status.
-- [ ] Support Available, Low supply, Paused, Sold out.
-- [ ] Show status on wallet page.
-- [ ] Show status on public event page during live event.
+- [x] Support Available, Low supply, Paused, Sold out.
+- [x] Show status on wallet page.
+- [x] Show status on public event page during live event.
 - [ ] Show soft warning in scanner.
 - [ ] Include statuses in admin dashboard.
 - [ ] Include statuses in reports.
@@ -346,8 +349,8 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 - [ ] Add checkout age acknowledgement text.
 - [ ] Show alcohol ID note on wallet page.
 - [ ] Show age-restricted warning in vendor scanner.
-- [ ] Require ID Checked click before alcohol redemption.
-- [ ] Record `idChecked` per alcohol redemption.
+- [x] Require ID Checked click before alcohol redemption.
+- [x] Record `idChecked` per alcohol redemption.
 - [ ] Include age-restricted/id-checked fields in audit/export.
 - [ ] Keep physical ID check disclaimer visible to organizers/vendors.
 
@@ -372,7 +375,7 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 
 - [ ] Configure donations enabled per event.
 - [ ] Configure preset donation amounts.
-- [ ] Enable custom donation amount.
+- [x] Enable custom donation amount.
 - [ ] Add donation UI to checkout.
 - [ ] Report donations separately.
 - [ ] Add custom receipt footer text per org/event.
@@ -529,4 +532,3 @@ This backlog is derived from `PRODUCT_SPEC.md`. It is organized roughly by build
 - [ ] Apple Wallet / Google Wallet support.
 - [ ] Direct voting integration.
 - [ ] Access-controlled private bundle links with allowlists.
-

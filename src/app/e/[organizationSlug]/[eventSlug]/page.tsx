@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { formatCents } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { createTestWallet } from "./actions";
 
@@ -29,7 +30,8 @@ export default async function EventPage({ params }: EventPageProps) {
       bundles: {
         where: {
           active: true,
-          availableForNewWallet: true
+          availableForNewWallet: true,
+          visibility: "PUBLIC"
         },
         include: {
           credits: {
@@ -42,7 +44,12 @@ export default async function EventPage({ params }: EventPageProps) {
       },
       vendors: {
         include: {
-          category: true
+          category: true,
+          creditTypes: {
+            include: {
+              creditType: true
+            }
+          }
         },
         orderBy: [{ category: { sortOrder: "asc" } }, { name: "asc" }]
       }
@@ -82,29 +89,16 @@ export default async function EventPage({ params }: EventPageProps) {
         </div>
 
         <section className="rounded-lg border border-black/10 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Test checkout</h2>
+          <h2 className="text-lg font-semibold">Buy tasting passes</h2>
           <p className="mt-2 text-sm leading-6 text-black/65">
-            Creates a comped local wallet from a bundle. No payment is collected.
+            Local MVP checkout creates wallets immediately. Stripe Checkout will
+            replace this submit step for production payments.
           </p>
           {event.bundles.length === 0 ? (
             <p className="mt-4 text-sm text-black/60">No active bundles available.</p>
           ) : (
-            <form action={createTestWallet} className="mt-4 grid gap-3">
+            <form action={createTestWallet} className="mt-4 grid gap-4">
               <input type="hidden" name="eventId" value={event.id} />
-              <label className="grid gap-1 text-sm font-medium">
-                Bundle
-                <select
-                  name="bundleId"
-                  className="h-11 rounded-md border border-black/15 bg-white px-3 text-sm"
-                  required
-                >
-                  {event.bundles.map((bundle) => (
-                    <option key={bundle.id} value={bundle.id}>
-                      {bundle.name} - ${(bundle.priceCents / 100).toFixed(2)}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <label className="grid gap-1 text-sm font-medium">
                 Buyer name
                 <input
@@ -124,20 +118,96 @@ export default async function EventPage({ params }: EventPageProps) {
                   required
                 />
               </label>
+
+              <div className="grid gap-3">
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <fieldset
+                    key={index}
+                    className="rounded-md border border-black/10 bg-paper/70 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <legend className="text-sm font-semibold">
+                        Wallet {index + 1}
+                      </legend>
+                      {index > 0 ? (
+                        <label className="flex items-center gap-2 text-xs font-semibold text-black/60">
+                          <input
+                            name={`wallets.${index}.enabled`}
+                            type="checkbox"
+                            className="size-4"
+                          />
+                          Add
+                        </label>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      <label className="grid gap-1 text-sm font-medium">
+                        Bundle
+                        <select
+                          name={`wallets.${index}.bundleId`}
+                          className="h-11 rounded-md border border-black/15 bg-white px-3 text-sm"
+                          required={index === 0}
+                        >
+                          {event.bundles.map((bundle) => (
+                            <option key={bundle.id} value={bundle.id}>
+                              {bundle.name} - {formatCents(bundle.priceCents)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid gap-1 text-sm font-medium">
+                        Wallet name
+                        <input
+                          name={`wallets.${index}.displayName`}
+                          className="h-11 rounded-md border border-black/15 px-3 text-sm"
+                          defaultValue={index === 0 ? "Guest 1" : ""}
+                          placeholder={`Guest ${index + 1}`}
+                          required={index === 0}
+                        />
+                      </label>
+                      <label className="grid gap-1 text-sm font-medium">
+                        Recipient email
+                        <input
+                          name={`wallets.${index}.recipientEmail`}
+                          type="email"
+                          className="h-11 rounded-md border border-black/15 px-3 text-sm"
+                          placeholder="Optional"
+                        />
+                      </label>
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
+
               <label className="grid gap-1 text-sm font-medium">
-                Wallet display name
+                Extra donation
                 <input
-                  name="walletDisplayName"
+                  name="donationDollars"
+                  type="number"
+                  min="0"
+                  step="1"
                   className="h-11 rounded-md border border-black/15 px-3 text-sm"
-                  defaultValue="Demo Guest"
+                  defaultValue="0"
+                />
+              </label>
+
+              <label className="flex items-start gap-2 text-sm leading-5 text-black/70">
+                <input
+                  name="acceptedTerms"
+                  type="checkbox"
+                  className="mt-0.5 size-4"
                   required
                 />
+                <span>
+                  I understand purchases are non-refundable and credits expire at
+                  the event redemption end time.
+                </span>
               </label>
               <button
                 type="submit"
                 className="mt-1 h-11 rounded-md bg-ink px-4 text-sm font-semibold text-white"
               >
-                Create Test Wallet
+                Create Wallets
               </button>
             </form>
           )}
@@ -152,7 +222,7 @@ export default async function EventPage({ params }: EventPageProps) {
           >
             <h2 className="text-xl font-semibold">{bundle.name}</h2>
             <p className="mt-2 text-3xl font-semibold">
-              ${(bundle.priceCents / 100).toFixed(2)}
+              {formatCents(bundle.priceCents, bundle.currency)}
             </p>
             <p className="mt-2 text-sm leading-6 text-black/65">
               {bundle.description}
@@ -177,8 +247,14 @@ export default async function EventPage({ params }: EventPageProps) {
               className="rounded-md border border-black/10 px-3 py-2"
             >
               <p className="font-semibold">{vendor.name}</p>
-              <p className="text-sm text-black/60">
+              <p className="hidden">
                 {vendor.category?.name ?? "Vendor"} · {vendor.status.replace("_", " ")}
+              </p>
+              <p className="text-sm text-black/60">
+                {vendor.category?.name ?? "Vendor"} - {vendor.status.replace("_", " ")}
+              </p>
+              <p className="mt-1 text-xs text-black/50">
+                {vendor.creditTypes.map((item) => item.creditType.name).join(", ")}
               </p>
             </div>
           ))}
@@ -187,4 +263,3 @@ export default async function EventPage({ params }: EventPageProps) {
     </main>
   );
 }
-

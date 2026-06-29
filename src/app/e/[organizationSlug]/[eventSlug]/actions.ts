@@ -1,88 +1,65 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { z } from "zod";
-import { createManualCode } from "@/lib/codes";
-import { prisma } from "@/lib/prisma";
+import { createLocalPaidOrder } from "@/lib/orders";
 
 const testPurchaseSchema = z.object({
   eventId: z.string().min(1),
-  bundleId: z.string().min(1),
   buyerName: z.string().trim().min(1, "Buyer name is required"),
   buyerEmail: z.string().trim().email("Buyer email is required"),
-  walletDisplayName: z.string().trim().min(1, "Wallet name is required")
+  donationDollars: z.coerce.number().min(0).max(10000).default(0),
+  acceptedTerms: z.literal("on"),
+  wallets: z
+    .array(
+      z.object({
+        enabled: z.boolean(),
+        bundleId: z.string().min(1),
+        displayName: z.string().trim(),
+        recipientEmail: z.string().trim().optional()
+      })
+    )
+    .transform((wallets) =>
+      wallets
+        .filter((wallet) => wallet.enabled)
+        .map((wallet, index) => ({
+          bundleId: wallet.bundleId,
+          displayName: wallet.displayName || `Guest ${index + 1}`,
+          recipientEmail: wallet.recipientEmail || undefined
+        }))
+    )
+    .pipe(z.array(z.object({
+      bundleId: z.string().min(1),
+      displayName: z.string().min(1),
+      recipientEmail: z.string().email().optional()
+    })).min(1, "Select at least one wallet."))
 });
 
 export async function createTestWallet(formData: FormData) {
+  const wallets = [0, 1, 2, 3, 4].map((index) => ({
+    enabled: formData.get(`wallets.${index}.enabled`) === "on" || index === 0,
+    bundleId: String(formData.get(`wallets.${index}.bundleId`) ?? ""),
+    displayName: String(formData.get(`wallets.${index}.displayName`) ?? ""),
+    recipientEmail: String(formData.get(`wallets.${index}.recipientEmail`) ?? "")
+  }));
+
   const parsed = testPurchaseSchema.parse({
     eventId: formData.get("eventId"),
-    bundleId: formData.get("bundleId"),
     buyerName: formData.get("buyerName"),
     buyerEmail: formData.get("buyerEmail"),
-    walletDisplayName: formData.get("walletDisplayName")
+    donationDollars: formData.get("donationDollars") || 0,
+    acceptedTerms: formData.get("acceptedTerms"),
+    wallets
   });
 
-  const bundle = await prisma.creditBundle.findFirstOrThrow({
-    where: {
-      id: parsed.bundleId,
-      eventId: parsed.eventId,
-      active: true
-    },
-    include: {
-      credits: true
-    }
+  const result = await createLocalPaidOrder({
+    eventId: parsed.eventId,
+    buyerName: parsed.buyerName,
+    buyerEmail: parsed.buyerEmail,
+    donationCents: Math.round(parsed.donationDollars * 100),
+    wallets: parsed.wallets,
+    adminNote: "Local MVP checkout; Stripe payment not collected in development."
   });
 
-  const wallet = await prisma.$transaction(async (tx) => {
-    const order = await tx.order.create({
-      data: {
-        eventId: parsed.eventId,
-        buyerEmail: parsed.buyerEmail,
-        buyerName: parsed.buyerName,
-        paymentMethod: PaymentMethod.COMP,
-        paymentStatus: PaymentStatus.COMPED,
-        subtotalCents: bundle.priceCents,
-        discountCents: bundle.priceCents,
-        totalCents: 0,
-        adminNote: "Local test checkout; no payment collected."
-      }
-    });
-
-    const createdWallet = await tx.wallet.create({
-      data: {
-        eventId: parsed.eventId,
-        orderId: order.id,
-        displayName: parsed.walletDisplayName,
-        manualCode: createManualCode(),
-        recipientEmail: parsed.buyerEmail
-      }
-    });
-
-    await tx.orderItem.create({
-      data: {
-        orderId: order.id,
-        bundleId: bundle.id,
-        walletId: createdWallet.id,
-        quantity: 1,
-        unitPriceCents: bundle.priceCents
-      }
-    });
-
-    await tx.creditLedgerEntry.createMany({
-      data: bundle.credits.map((credit) => ({
-        eventId: parsed.eventId,
-        walletId: createdWallet.id,
-        creditTypeId: credit.creditTypeId,
-        type: "PURCHASE",
-        amount: credit.quantity,
-        reason: "Local test checkout"
-      }))
-    });
-
-    return createdWallet;
-  });
-
-  redirect(`/w/${wallet.accessToken}`);
+  redirect(`/order/${result.order.id}`);
 }
-

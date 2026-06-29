@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { getWalletBalances } from "@/lib/credits";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +13,10 @@ type WalletPageProps = {
 
 export default async function WalletPage({ params }: WalletPageProps) {
   const { token } = await params;
+  const requestHeaders = await headers();
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const host = requestHeaders.get("host") ?? "localhost:3000";
+  const walletUrl = `${protocol}://${host}/w/${token}`;
   const wallet = await prisma.wallet.findUnique({
     where: { accessToken: token },
     include: {
@@ -46,10 +51,14 @@ export default async function WalletPage({ params }: WalletPageProps) {
   }
 
   const balances = await getWalletBalances(wallet.id);
+  const totalCredits = balances.reduce((total, item) => total + item.balance, 0);
   const tastedVendorIds = new Set(wallet.redemptions.map((item) => item.vendorId));
   const availableVendors = wallet.event.vendors.filter((vendor) =>
     ["AVAILABLE", "LOW_SUPPLY"].includes(vendor.status)
   );
+  const now = new Date();
+  const expiresAt = wallet.event.redemptionEndAt;
+  const isExpired = Boolean(expiresAt && now > expiresAt);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-5">
@@ -59,6 +68,12 @@ export default async function WalletPage({ params }: WalletPageProps) {
         <p className="mt-2 text-sm text-black/65">
           Manual code: <span className="font-semibold">{wallet.manualCode}</span>
         </p>
+        <p className="mt-1 break-all text-xs text-black/55">{walletUrl}</p>
+
+        <div className="mt-5 rounded-md bg-ink px-4 py-3 text-white">
+          <p className="text-sm font-medium text-white/70">Total credits remaining</p>
+          <p className="mt-1 text-4xl font-semibold">{totalCredits}</p>
+        </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {balances.map(({ creditType, balance }) => (
@@ -79,6 +94,14 @@ export default async function WalletPage({ params }: WalletPageProps) {
         <h2 className="text-lg font-semibold">Live vendor status</h2>
         <p className="mt-1 text-sm text-black/65">
           {availableVendors.length} of {wallet.event.vendors.length} vendors available
+        </p>
+        <p className={`mt-2 text-sm ${isExpired ? "text-red-700" : "text-black/65"}`}>
+          {expiresAt
+            ? `Credits expire ${expiresAt.toLocaleString("en-US", {
+                dateStyle: "medium",
+                timeStyle: "short"
+              })}.`
+            : "Credits expire when the organizer closes redemption."}
         </p>
       </section>
 

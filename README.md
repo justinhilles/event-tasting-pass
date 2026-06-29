@@ -9,6 +9,7 @@ Docker-first local scaffold for a charity tasting pass platform.
 - Tailwind CSS
 - Prisma
 - PostgreSQL
+- Stripe Checkout + Stripe Connect
 - Docker Compose
 
 ## Local Development
@@ -18,6 +19,16 @@ Copy the example environment file if you want to run commands directly on the ho
 ```bash
 cp .env.example .env
 ```
+
+For Stripe development, set:
+
+```txt
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
+
+The local MVP checkout still works without Stripe keys; production checkout will
+require them.
 
 Start the full Docker environment:
 
@@ -66,13 +77,34 @@ Use the test checkout form to create a comped local wallet from an available
 bundle. No payment is collected. After submit, the app redirects to the new
 wallet page.
 
+Production checkout will use Stripe Checkout with Stripe Connect so each
+organization can connect its own Stripe account. Manual payments are admin-only
+support flows, not the primary buyer checkout path.
+
 ## Useful Commands
 
 ```bash
 docker compose up --build
 docker compose exec app npm run db:seed
 docker compose exec app npx prisma studio
+docker compose exec app npm run test
+docker compose exec app npm run test:e2e
 docker compose down
+```
+
+## Tests
+
+Unit/integration tests use Vitest and Prisma:
+
+```bash
+docker compose exec app npm run test
+```
+
+Browser MVP flow tests use Playwright. The Docker image includes Alpine Chromium
+for this:
+
+```bash
+docker compose exec app npm run test:e2e
 ```
 
 ## Product Spec
